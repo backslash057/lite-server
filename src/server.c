@@ -1,71 +1,91 @@
 #include "server.h"
+#include "request.h"
+#include "handler.h"
 
 #include "utils.h"
+
+#include <unistd.h>
+#include <string.h>
+
+#include <dirent.h>
 
 int serverFd;
 
 int start(char* host, int port) {
-	int clientFd;
 	struct sockaddr_in servAddr;
-	struct sockaddr_in clientAddr;
-	socklen_t addrlen = sizeof(clientAddr);
-
-	char clientAddress_s[INET_ADDRSTRLEN];
-	int clientPort;
-	time_t t;
-
-	int readSize;
-	char buffer[1024] = {0};
+	socklen_t addrlen = sizeof(servAddr);
 
 	// Creating the server socket
 	serverFd = socket(AF_INET, SOCK_STREAM, 0);
 
-
-	// binding address to server
 	servAddr.sin_family = AF_INET;
-	servAddr.sin_port = htons(PORT);
-	inet_pton(AF_INET, "127.0.0.1", &servAddr.sin_addr);
+	servAddr.sin_port = htons(port);
+	inet_pton(AF_INET, host, &servAddr.sin_addr);
 
 	if(bind(serverFd, (struct sockaddr*)&servAddr, addrlen) < 0) {
-		perror("bind: ");
+		perror("bind");
 		exit(1);
 	}
-
 	
-	// listening to connections
 	if(listen(serverFd, 10)) {
-		perror("listen: ");
+		perror("listen");
 		exit(1);
 	}
 
-	printf("Server listening on port %d\n", PORT);
-	
+	printf("[%s] Live server %s (\e]8;;https://%s:%d/\e\\http://%s:%d\e]8;;\e\\) started\n", getCurrentTime(), getVersion(), host, port, host, port);
+}	
+
+void run(char* path) {
+	struct sockaddr_in clientAddr;
+	socklen_t addrlen = sizeof(clientAddr);
+
+	int clientFd;
+	char clientAddress_s[INET_ADDRSTRLEN];
+	int clientPort;
+
+	int readSize;
+	char buffer[1024];
+	char *line;
+
 	while(1) {
 		clientFd = accept(serverFd, (struct sockaddr*)&clientAddr, &addrlen);
-		if(clientFd == -1) perror("accept: ");
+		
+		if(clientFd == -1) {
+			perror("accept");
+			continue;
+		}
 
 		inet_ntop(AF_INET, &clientAddr.sin_addr, clientAddress_s, INET_ADDRSTRLEN);
 		clientPort = ntohs(clientAddr.sin_port);
 
-		time(&t);
-		printf("[%s] %s:%d Accepted\n", ctime(&t), clientAddress_s, clientPort);
+		printf("[%s] %s:%d Accepted\n", getCurrentTime(), clientAddress_s, clientPort);
 
+		readSize = read(clientFd, buffer, 1024-1);
+		buffer[readSize] = '\0';
+		if(readSize < 0) perror("read");
+		else {
+			HttpRequest request;
+			HttpResponse response;
 
-		readSize = read(clientFd, buffer, 1024);
+			line = strtok(buffer, "\r\n");
+			if(line == NULL) printf("bad request ignored for the moment.\n");
 
-		// handle received datas
-		// parseRequestLine(request, reqSize);
+			parseRequestLine(&request, line);
 
-		printf("[%s] %s:%d %s\n", getCurrentTime(), clientAddress_s, clientPort, buffer);
+			handleRequest(request, &response);
+
+			sendRequest(clientFd, response);
+
+			printf("[%s] %s:%d ", getCurrentTime(), clientAddress_s, clientPort);
+			printf("%s %s\n", request.method, request.uri.path);
+		}
+
 		printf("[%s] %s:%d Closing\n", getCurrentTime(), clientAddress_s, clientPort);
-
 		close(clientFd);
 	}
-	
-	close(serverFd);
-
 }
 
-int stop() {
-	printf("")
+void stop() {
+	close(serverFd);
+	printf("[%s] Server stopped", getCurrentTime());
 }

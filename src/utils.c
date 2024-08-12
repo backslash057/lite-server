@@ -1,10 +1,10 @@
-#include "utils.c"
+#include "utils.h"
 
 char* getVersion() {
-	char version[12];
+	char *version = malloc(sizeof(char)*12);
 
 	snprintf(
-		version, sizeof(version), "%d.%d.%d",
+		version, sizeof(char)*12, "%d.%d.%d",
 		MAJOR_VERSION, MINOR_VERSION, PATCHLEVEL
 	);
 
@@ -14,10 +14,11 @@ char* getVersion() {
 
 char* getCurrentTime() {
 	time_t now = time(NULL);
-	struct tm *t = localtime(now);
-	char buffer[12];
+	struct tm *t = localtime(&now);
+	
+	char *timeStr = malloc(sizeof(char)*26);
 
-	strftime(buffer, sizeof(buffer), "%a %b %e %H:%M:%S", t);
+	strftime(timeStr, sizeof(char)*26, "%a %b %e %H:%M:%S", t);
 
-	return buffer;
+	return timeStr;
 }
