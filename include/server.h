@@ -9,7 +9,9 @@
 
 int start(char* host, int PORT);
 
-int stop();
+void run(char* path);
+
+void stop();
 
 
 #endif

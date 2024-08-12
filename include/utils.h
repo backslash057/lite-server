@@ -3,6 +3,9 @@
 
 #include <time.h>
 
+#include <stdlib.h>
+#include <stdio.h>
+
 #define MAJOR_VERSION 1
 #define MINOR_VERSION 0
 #define PATCHLEVEL 0
