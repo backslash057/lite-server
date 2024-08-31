@@ -7,11 +7,14 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 
+#include "handler.h"
+
+void sendResponse(int clientFd, HttpResponse response);
+
 int start(char* host, int PORT);
 
 void run(char* path);
 
 void stop();
-
 
 #endif

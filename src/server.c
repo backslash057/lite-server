@@ -1,5 +1,5 @@
 #include "server.h"
-#include "request.h"
+#include "parser.h"
 #include "handler.h"
 
 #include "utils.h"
@@ -10,6 +10,22 @@
 #include <dirent.h>
 
 int serverFd;
+
+char* getReasonPhrase(int responseCode) {
+	switch(responseCode) {
+		case 200: return "OK";
+		case 404: return "Not Found";
+	}
+}
+
+void sendResponse(int clientFd, HttpResponse response){
+	char *fmt = "%s %d %s\r\nHello world";
+
+	dprintf(clientFd, fmt, 
+		response.httpVersion, response.code,
+		getReasonPhrase(response.code)
+	);
+}
 
 int start(char* host, int port) {
 	struct sockaddr_in servAddr;
@@ -32,7 +48,8 @@ int start(char* host, int port) {
 		exit(1);
 	}
 
-	printf("[%s] Live server %s (\e]8;;https://%s:%d/\e\\http://%s:%d\e]8;;\e\\) started\n", getCurrentTime(), getVersion(), host, port, host, port);
+	printf("[%s] Live server %s (\e]8;;https://%s:%d/\e\\http://%s:%d\e]8;;\e\\) started\n",
+		getCurrentTime(), getVersion(), host, port, host, port);
 }	
 
 void run(char* path) {
@@ -74,7 +91,7 @@ void run(char* path) {
 
 			handleRequest(request, &response);
 
-			sendRequest(clientFd, response);
+			sendResponse(clientFd, response);
 
 			printf("[%s] %s:%d ", getCurrentTime(), clientAddress_s, clientPort);
 			printf("%s %s\n", request.method, request.uri.path);

@@ -12,7 +12,7 @@ char* getVersion() {
 }
 
 
-char* getCurrentTime() {
+char* getLogTime() {
 	time_t now = time(NULL);
 	struct tm *t = localtime(&now);
 	
@@ -21,4 +21,14 @@ char* getCurrentTime() {
 	strftime(timeStr, sizeof(char)*26, "%a %b %e %H:%M:%S", t);
 
 	return timeStr;
+}
+
+char* getResponseTime() {
+	time_t now = time(NULL);
+
+	struct tm *t = localtime(&now);
+
+	char
+
+	strftime(stimeQtr)
 }
