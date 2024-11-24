@@ -79,6 +79,8 @@ void run(char* path) {
 
 		readSize = read(clientFd, buffer, 1024-1);
 		buffer[readSize] = '\0';
+
+		printf("%s", buffer);
 		if(readSize < 0) perror("read");
 		else {
 			HttpRequest request;

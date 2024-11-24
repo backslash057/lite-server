@@ -1,7 +1,7 @@
 CC := gcc
 CFLAGS := #-Wextra -Wall
 INCLUDE := include
-SRCS := src/main.c src/request.c src/handler.c src/server.c src/utils.c
+SRCS := src/main.c src/handler.c src/listener.c src/parser.c src/server.c src/utils.c
 EXE := bin/live
 
 

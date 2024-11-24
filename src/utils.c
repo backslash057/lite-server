@@ -28,7 +28,5 @@ char* getResponseTime() {
 
 	struct tm *t = localtime(&now);
 
-	char
-
-	strftime(stimeQtr)
+	// strftime(stimeQtr);
 }
