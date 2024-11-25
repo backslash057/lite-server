@@ -11,7 +11,7 @@ Live always handle requests using HTTP/1.1 no matter the version of the incoming
 These features might be implemented later.
 
 ## How to install
-You can either download prebuilt release for your platform from the release page, add to your path and use live at cli tool
+You can either download prebuilt release for your platform from the release page, add to your path and use live from command line
 
 ```bash
 sudo apt install build-essentials
