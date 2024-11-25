@@ -12,10 +12,12 @@
 
 int main(int argc, char const* argv[])
 {
-
 	// read and parse the command line arguments
 
-	// host, path and port will be changed to dynamic by command lien arguments
+	/*
+	host, path and port will be changed to 
+	dynamic by command line arguments later
+	*/
 	char *host = "127.0.0.1";
 	int port = 5050;
 	char* path = BASE_PATH;

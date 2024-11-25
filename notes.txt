@@ -9,3 +9,7 @@ le parseur lis les lignes de la requete et les transforme en objet httpRequest
 le serveur va maintenant appeler le handler en lui passant le httprequest en question ainsi que
 le file descriptor du client pour qu il puisse y ecrire la reponse http
 
+
+
+
+create a config parser

@@ -10,16 +10,15 @@ Live always handle requests using HTTP/1.1 no matter the version of the incoming
 
 These features might be implemented later.
 
+## How to install
+You can either download prebuilt release for your platform from the release page, add to your path and use live at cli tool
 
-##How to install
-You can either download prebuilt release for your platform from the <a href="https://github.com/backslash057/live-server/releases"> release page</a>, add to your path and use live at cli tool
-
-`bash
+```bash
 sudo apt install build-essentials
 git clone https://github.com/backslash057/live-server.git
 cd live-server
 make
 ./bin/live
-`
+```
 
 Hope it's helpful
