@@ -8,5 +8,8 @@ EXE := bin/live
 compile:
 	@$(CC) -o $(EXE) $(SRCS) -I $(INCLUDE) $(CFLAGS)
 
-run: compile
+test_config:
+	@$(CC) -o $(EXE) src/config.c
+
+run: test_config #compile
 	@./$(EXE)
