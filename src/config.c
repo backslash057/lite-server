@@ -5,7 +5,7 @@
 #define MAX_VAL_LENGTH 150
 
 typedef enum {
-	INTEGER, STRING
+	INTEGER, STRING, 
 } ValueType;
 
 typedef struct node {
@@ -27,12 +27,12 @@ typedef struct section {
 	struct section *next;
 } Section;
 
-typedef struct {
-	Section* sections;
-} Config;
+
+typedef Section* Config;
+
 
 void initConfig(Config* config) {
-	config->sections = NULL;
+	config == NULL;
 }
 
 void parseConfig(Config* conf) {
@@ -40,30 +40,30 @@ void parseConfig(Config* conf) {
 }
 
 void printConfig(Config config) {
-	if(config.sections == NULL) return;
+	if(config == NULL) return;
 
-	// Section* section = config.sections;
-	// Node* current;
+	Section* section = config;
+	Node* current;
 
-	// while(section != NULL) {
-	// 	printf("[%s]", section);
+	while(section != NULL) {
+		printf("[%s]", section);
 
-	// 	current = section->head;
+		 = section->head;
 
-	// 	while(current != NULL) {
-	// 		printf("\t%s=%s")
+		while(current != NULL) {
+			if(curen)
+			printf("\t%s=%s");
 
-	// 		current = current->next;
-	// 	}
+			current = current->next;
+		}
 
-	// 	section = section->next;
-	// }
+		section = section->next;
+	}
 }
 
 
 int main() {
 	Config config;
-
 	initConfig(&config);
 
 	parseConfig(&config);
