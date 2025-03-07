@@ -12,4 +12,5 @@ compile:
 
 
 run: test_config #compile
+	clear
 	@./$(EXE)

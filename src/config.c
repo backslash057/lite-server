@@ -4,6 +4,7 @@
 #define MAX_KEY_LENGTH 100
 #define MAX_VAL_LENGTH 150
 
+
 typedef enum {
 	INTEGER, STRING, 
 } ValueType;
@@ -30,6 +31,18 @@ typedef struct section {
 
 typedef Section* Config;
 
+void cprintf(char *s) {
+	for(int i=0;;i++) {
+		if(s[i] == '\0') {
+			printf("\\0");
+			break;
+		}
+		else if(s[i] == '\n') printf("\\n");
+		else printf("%c", s[i]);
+	}
+	printf("\n");
+}
+
 
 void initConfig(Config* config) {
 	config == NULL;
@@ -37,60 +50,110 @@ void initConfig(Config* config) {
 
 int parseConfig(Config* conf, char* path) {
 	FILE* f = fopen(path, "r");
-	char buffer[1024];
-	int lineNumber = 1;
+	char buf[1024];
+	int lineNumber = 0;
 
-	while(fgets(buffer, sizeof(buffer), f) != NULL) {
-		int i=0;
-		int spacingFlag = 0;
+	int start;
+	int i;
+	int spaceCounter;
+	int size;
+	
+	while(fgets(buf, sizeof(buf), f) != NULL) {
+		lineNumber++;
 
-		Data* data;
-		line++;
+		printf("\n");
+		printf("%d. ", lineNumber);
+		cprintf(buf);
+
+		i=0;
+
+		Data *data;
 		
 		// eliminate leading spaces and tabs
-		while(s[i] == ' ' || s[i] == '\t') i++;
+		while(buf[i] == ' ' || buf[i] == '\t') i++;
 
-		// case when the rest of the string is empty
-		if(s[i] == '\0') continue;
-
+		// case when the rest of the string is empty or commented
+		if(buf[i] == '\n' || buf[i] == '\0' || buf[i] == '#' || buf[i]==';') continue;
+		
 		// parse the data key from the string
-		char* start = buffer[i];
-		while(s[i] != '=' && s[i] != ':') {
-			if(s[i] != ' ' || s[i] == '\t') spacingFlag = 1;
-			else if (s[i] == ';' || s[i] == '#') {
-				printf("[Line %d] Unexpected end of line", lineNumber);
+		start = i;
+		spaceCounter = 0;
+		int quoteFlag = 0;
+
+		while (buf[i] != '=' && buf[i]!='\n' && buf[i] != '\0' && buf[i]!=';' && buf[i]!='#') {
+			if(buf[i] == "'" || buf[i] == '"') {
+				quoteFlag = -1;
+				break;
 			}
-
-
-			if(s[i] == '')
-			// // check end of line('\n') or comment start('#' or ';')
-			// if(s[i] == '\n' || s[i] == '#' || s[i] == ';') break;
-
+			if(buf[i] != ' ' && spaceCounter != 0) {
+				spaceCounter = -1; // a non-space character was found after a space
+				break;
+			}
+			else if(spaceCounter==' ') spaceCounter++;
 			i++;
 		}
 
-		int keyWidth = buffer + i - start;
-		printf("[Line %d] key width: %d\n", lineNumber, keyWidth);
+		if(buf[i] == '\0' || buf[i]=='\n') {
+			printf("Line %d: Unexpected end of line\n", lineNumber);
+			continue;
+		}
+		
+		if(buf[i]==';' || buf[i]=='#') {
+			printf("Line %d: Unexpected comment. No value specified\n", lineNumber);
+			continue;
+		}
+		
+		if(quoteFlag == -1) {
+			printf("Line %d: Unexpected quote within key string\n", lineNumber);
+			continue;
+		}
 
-		// // skip the character '=' or ':' found
-		// i++;
+		if(spaceCounter == -1) {
+			printf("Line %d: Unexpected space within key string\n", lineNumber);
+			continue;
+		}
+		
 
-		// // parse the value
-		// // --> skip the leading spaces
-		// while(s[i] == ' ' || s[i] == '\t') i++;
+		size = i - spaceCounter - start; //spaceCounter counted the number of spaces at end
+		printf("Key found on line %d, size: %d characters\n", lineNumber, size);
 
-		// spacingFlag = 0;
-		// while(s[i] != '\0') {
-		// 	i++;
-		// }
+		// skip the character '=' sign found
+		i++;
+
+		// parse the value
+		// --> skip the leading spaces
+		while(buf[i] == ' ' || buf[i] == '\t') i++;
+		
+		// case when the rest of the string is empty or commented
+		if(buf[i] == '\n' || buf[i] == '\0' || buf[i] == '#' || buf[i]==';') {
+			printf("Line %d: Unexpected comment. No value specified\n", lineNumber);
+			continue;
+		}
+
+		start = i;
+		spaceCounter = 0;
+		quoteFlag = 0;
+		// parse the value
+		while(buf[i] != '\0' && buf[i]!='\n' && buf[i]!=';') {
+			if((buf[i]=='"' || buf[i]=="'") && quoteFlag==0) {
+				quoteFlag++;
+			}
+
+			if(buf[i] == ' ') spaceCounter++;
+			else spaceCounter = 0;
+			i++;
+		}
+
+		size = i - spaceCounter - start; //spaceCounter counted the number of spaces at end
+		printf("Value found on line %d, size: %d characters\n", lineNumber, size);
 	}
 
 	if(!feof(f)) {
-		printf("Error while reading line %d", line);
+		printf("Error while reading line %d", lineNumber);
 		return -1;
 	}
-
-
+	
+	
 	return 0;
 }
 
@@ -121,7 +184,7 @@ int main() {
 	initConfig(&config);
 
 
-	parseConfig(&config, "config.ini");
+	parseConfig(&config, "temp.ini");
 
 
 	printConfig(config);
@@ -129,21 +192,18 @@ int main() {
 
 
 
-
-// quand on a une ligne, comment est ce qu-on la parcourt
-
-
+/* Possible cases */
 /*
-' \t'
-key=Value
-    key=value
-key = val
-key 2 = value
-key   =     val
-key2 == valllllll
-key3 = 13B
+	' \t'
+	key=Value
+		key=value
+	key = val
+	key 2 = value
+	key   =     val
+	key2 == valllllll
+	key3 = 13B
 */
 
-remove all leading spacing characters
-loop on the string until equal on colon is reach
-once th
+// remove all leading spacing characters
+// loop on the string until equal on colon is reach
+// once th
