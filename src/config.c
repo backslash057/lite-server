@@ -75,77 +75,83 @@ int parseConfig(Config* conf, char* path) {
 		// case when the rest of the string is empty or commented
 		if(buf[i] == '\n' || buf[i] == '\0' || buf[i] == '#' || buf[i]==';') continue;
 		
-		// parse the data key from the string
-		start = i;
-		spaceCounter = 0;
-		int quoteFlag = 0;
 
-		while (buf[i] != '=' && buf[i]!='\n' && buf[i] != '\0' && buf[i]!=';' && buf[i]!='#') {
-			if(buf[i] == "'" || buf[i] == '"') {
-				quoteFlag = -1;
-				break;
+		if(buf[i] == '[') { // Detects if the line is the start of a section
+			printf("section detected. Parsing later")
+		}
+		else { // Detects if the line is a key-value pair
+			// parse the data key from the string
+			start = i;
+			spaceCounter = 0;
+			int quoteFlag = 0;
+
+			while (buf[i] != '=' && buf[i]!='\n' && buf[i] != '\0' && buf[i]!=';' && buf[i]!='#') {
+				if(buf[i] == '\'' || buf[i] == '"') {
+					quoteFlag = -1;
+					break;
+				}
+				if(buf[i] != ' ' && spaceCounter != 0) {
+					spaceCounter = -1; // a non-space character was found after a space
+					break;
+				}
+				else if(spaceCounter==' ') spaceCounter++;
+				i++;
 			}
-			if(buf[i] != ' ' && spaceCounter != 0) {
-				spaceCounter = -1; // a non-space character was found after a space
-				break;
+
+			if(buf[i] == '\0' || buf[i]=='\n') {
+				printf("Line %d: Unexpected end of line\n", lineNumber);
+				continue;
 			}
-			else if(spaceCounter==' ') spaceCounter++;
+			
+			if(buf[i]==';' || buf[i]=='#') {
+				printf("Line %d: Unexpected comment. No value specified\n", lineNumber);
+				continue;
+			}
+			
+			if(quoteFlag == -1) {
+				printf("Line %d: Unexpected quote within key string\n", lineNumber);
+				continue;
+			}
+
+			if(spaceCounter == -1) {
+				printf("Line %d: Unexpected space within key string\n", lineNumber);
+				continue;
+			}
+			
+
+			size = i - spaceCounter - start; //spaceCounter counted the number of spaces at end
+			printf("Key found on line %d, size: %d characters\n", lineNumber, size);
+
+			// skip the character '=' sign found
 			i++;
-		}
 
-		if(buf[i] == '\0' || buf[i]=='\n') {
-			printf("Line %d: Unexpected end of line\n", lineNumber);
-			continue;
-		}
-		
-		if(buf[i]==';' || buf[i]=='#') {
-			printf("Line %d: Unexpected comment. No value specified\n", lineNumber);
-			continue;
-		}
-		
-		if(quoteFlag == -1) {
-			printf("Line %d: Unexpected quote within key string\n", lineNumber);
-			continue;
-		}
-
-		if(spaceCounter == -1) {
-			printf("Line %d: Unexpected space within key string\n", lineNumber);
-			continue;
-		}
-		
-
-		size = i - spaceCounter - start; //spaceCounter counted the number of spaces at end
-		printf("Key found on line %d, size: %d characters\n", lineNumber, size);
-
-		// skip the character '=' sign found
-		i++;
-
-		// parse the value
-		// --> skip the leading spaces
-		while(buf[i] == ' ' || buf[i] == '\t') i++;
-		
-		// case when the rest of the string is empty or commented
-		if(buf[i] == '\n' || buf[i] == '\0' || buf[i] == '#' || buf[i]==';') {
-			printf("Line %d: Unexpected comment. No value specified\n", lineNumber);
-			continue;
-		}
-
-		start = i;
-		spaceCounter = 0;
-		quoteFlag = 0;
-		// parse the value
-		while(buf[i] != '\0' && buf[i]!='\n' && buf[i]!=';') {
-			if((buf[i]=='"' || buf[i]=="'") && quoteFlag==0) {
-				quoteFlag++;
+			// parse the value
+			// --> skip the leading spaces
+			while(buf[i] == ' ' || buf[i] == '\t') i++;
+			
+			// case when the rest of the string is empty or commented
+			if(buf[i] == '\n' || buf[i] == '\0' || buf[i] == '#' || buf[i]==';') {
+				printf("Line %d: Unexpected comment. No value specified\n", lineNumber);
+				continue;
 			}
 
-			if(buf[i] == ' ') spaceCounter++;
-			else spaceCounter = 0;
-			i++;
-		}
+			start = i;
+			spaceCounter = 0;
+			quoteFlag = 0;
+			// parse the value
+			while(buf[i] != '\0' && buf[i]!='\n' && buf[i]!=';') {
+				if((buf[i]=='"' || buf[i]=='\'') && quoteFlag==0) {
+					quoteFlag++;
+				}
 
-		size = i - spaceCounter - start; //spaceCounter counted the number of spaces at end
-		printf("Value found on line %d, size: %d characters\n", lineNumber, size);
+				if(buf[i] == ' ') spaceCounter++;
+				else spaceCounter = 0;
+				i++;
+			}
+
+			size = i - spaceCounter - start; //spaceCounter counted the number of spaces at end
+			printf("Value found on line %d, size: %d characters\n", lineNumber, size);
+		}
 	}
 
 	if(!feof(f)) {
