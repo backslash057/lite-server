@@ -1,38 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-
-#define MAX_LINE_LENGTH 1024
-
-typedef enum {
-    INTEGER, STRING, DOUBLE
-} ValueType;
-
-typedef union value {
-    char* s_value;
-    int i_value;
-    double d_value;
-} Value;
-
-typedef struct data {
-    char* key;
-    ValueType type;
-    Value val;
-    struct data *next;
-} Data;
-
-typedef struct section {
-    char* title;
-    Data* head;
-    struct section *next;
-} Section;
-
-typedef Section* Config;
-
-void initConfig(Config* config) {
-    *config = NULL;
-}
+#include "config.h"
 
 void cprintf(char *s) {
 	for(int i=0;;i++) {
@@ -49,7 +15,7 @@ void cprintf(char *s) {
 int parseConfig(Config* conf, char* path) {
     FILE* f = fopen(path, "r");
     if (!f) {
-        perror("Failed to open file");
+        logMessage(LOG_WARNING, "Config", "Failed to open '%s'(%s). Skipping configuration", path, strerror(errno));
         return -1;
     }
 
@@ -62,21 +28,19 @@ int parseConfig(Config* conf, char* path) {
 
         // Trim leading spaces
         while (isblank(buf[i])) i++;
-
         // skip empty or commented lines
         if (buf[i] == '\0' || buf[i] == '\n' || buf[i] == '#' || buf[i] == ';') continue;
-
 
         if (buf[i] == '[') {
             i++;
             int start = i;
             while (buf[i] != ']' && buf[i] != '\0' && buf[i] != '\n' && !isblank(buf[i])) i++;
             if (isblank(buf[i])) {
-                printf("Line %d: Space characters not allowed within section name\n", lineNumber);
+                logMessage(LOG_WARNING, "Config", "Line %d: Space characters not allowed within section name\n", lineNumber);
                 continue;
             }
             if (buf[i] != ']') {
-                printf("Line %d: Missing closing bracket for section\n", lineNumber);
+                logMessage(LOG_WARNING, "Config", "Line %d: Missing closing bracket for section declaration\n", lineNumber);
                 continue;
             }
             
@@ -89,7 +53,7 @@ int parseConfig(Config* conf, char* path) {
 			*conf = section;
         } else {
             if (*conf == NULL) {
-                printf("Line %d: Key-value pair outside of any section\n", lineNumber);
+                logMessage(LOG_WARNING, "Config", "Line %d: Key-value pair outside of any section\n", lineNumber);
                 continue;
             }
             
@@ -112,15 +76,15 @@ int parseConfig(Config* conf, char* path) {
 				i++;
 			}
             if(quoteFlag == -1) {
-                printf("Line %d: Unexpected quote symbol within key string\n", lineNumber);
+                logMessage(LOG_WARNING, "Config", "Line %d: Unexpected quote symbol within key string\n", lineNumber);
                 continue;
             }
             if(spaceCounter == -1) {
-                printf("Line %d: Unexpected spacing characters within key string\n", lineNumber);
+                logMessage(LOG_WARNING, "Config", "Line %d: Unexpected spacing characters within key string\n", lineNumber);
                 continue;
             }
             if (buf[i] != '=') {
-                printf("Line %d: No value specified\n", lineNumber);
+                logMessage(LOG_WARNING, "Config", "Line %d: No value specified\n", lineNumber);
                 continue;
             }
             int key_end = i - spaceCounter;
@@ -150,7 +114,7 @@ int parseConfig(Config* conf, char* path) {
                 i++;
             };
             if(floatingPointFlag == -1) {
-                printf("Line %d: Invalid floating point expression\n", lineNumber);
+                logMessage(LOG_WARNING, "Config", "Line %d: Invalid floating point expression\n", lineNumber);
                 continue;
             }
             int val_end = i;
@@ -168,7 +132,7 @@ int parseConfig(Config* conf, char* path) {
                     i++;
                 }
                 if(nonBlankFlag) {
-                    printf("Line %d: Unexpected character after string value\n", lineNumber);
+                    logMessage(LOG_WARNING, "Config", "Line %d: Unexpected character after string value\n", lineNumber);
                     continue;
                 }
 
@@ -192,7 +156,7 @@ int parseConfig(Config* conf, char* path) {
                 }
 
                 if(failed) {
-                    printf("Line %d: Value parsing failed\n", lineNumber);
+                    logMessage(LOG_WARNING, "Config", "Line %d: Value parsing failed\n", lineNumber);
                     continue;
                 }
             }
@@ -208,7 +172,7 @@ int parseConfig(Config* conf, char* path) {
     }
 
     if (ferror(f)) {
-        printf("Error while reading the file.\n");
+        logMessage(LOG_WARNING, "Config", "Error while reading the file.\n");
         fclose(f);
         return -1;
     }
@@ -254,14 +218,71 @@ void freeConfig(Config config) {
     }
 }
 
-int main() {
-    Config config;
-    initConfig(&config);
+int keyExists(Config config, char* section, char* key) {
+    Section* current = config;
 
-    if (parseConfig(&config, "temp.ini") == 0) {
-        printConfig(config);
+    while(current != NULL && strcmp(current->title, section) != 0) current = current->next;
+
+    // section not found
+    if(current != NULL) {
+        Data* temp = current->head;
+        while(temp != NULL && strcmp(temp->key, key) != 0) temp = temp->next; 
+        if(temp != NULL) return 1;
     }
 
-    freeConfig(config);
     return 0;
 }
+
+
+char* getString(Config config, char* section, char* key) {
+    Section* current = config;
+
+    while(current != NULL && strcmp(current->title, section) != 0) current = current->next;
+
+    if(current != NULL) {
+        Data* temp = current->head;
+        while(temp != NULL && strcmp(temp->key, key) != 0) temp = temp->next; 
+        if(temp != NULL && temp->type == STRING) return temp->val.s_value;
+    }
+
+    return NULL;
+}
+
+int getInt(Config config, char* section, char* key) {
+    Section* current = config;
+
+    while(current != NULL && strcmp(current->title, section) != 0) current = current->next;
+
+    if(current != NULL) {
+        Data* temp = current->head;
+        while(temp != NULL && strcmp(temp->key, key) != 0) temp = temp->next; 
+        if(temp != NULL && temp->type == INTEGER) return temp->val.i_value;
+    }
+
+    return 0;
+}
+
+double getDouble(Config config, char* section, char* key) {
+    Section* current = config;
+
+    while(current != NULL && strcmp(current->title, section) != 0) current = current->next;
+
+    if(current != NULL) {
+        Data* temp = current->head;
+        while(temp != NULL && strcmp(temp->key, key) != 0) temp = temp->next; 
+        if(temp != NULL && temp->type == DOUBLE) return temp->val.d_value;
+    }
+
+    return 0;
+}
+
+
+
+// int main() {
+//     Config config = NULL;
+//     parseConfig(&config, "config.ini");
+
+//     printConfig(config);
+
+//     return 0;
+// }

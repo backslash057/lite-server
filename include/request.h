@@ -5,6 +5,17 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "utils.h"
+
+typedef struct {
+	int code;
+	char* httpVersion;
+
+	char *contentType;
+
+	int contentSize;
+	char* body;
+} HttpResponse;
 
 /* Request Methods*/
 typedef enum {
@@ -28,6 +39,8 @@ typedef struct {
 } RequestURI;
 
 typedef struct {
+	int badRequestFlag; // Already tell handleRequest() it is 400-Bad request
+
 	char* method; /* Request method */
 
 	RequestURI uri; /* Request endpoint uri */
@@ -37,13 +50,21 @@ typedef struct {
 	/* Other request parameters */
 } HttpRequest;
 
+// Request handling
 
-int parseRequestURI(RequestURI* uri, char* s);
+//int parseRequestURI(RequestURI* uri, char* s); // private function
+
+int parseRequest(HttpRequest* request, char* buffer);
+
+void handleRequest(HttpRequest request, HttpResponse* response);
+
+int parseRequestURI(RequestURI* uri, char* uriString);
 
 int parseRequestLine(HttpRequest* request, char* line);
 
-void parseRequestHead(HttpRequest* request, char* head);
+// Response handling
+char* getReasonPhrase(int responseCode);
 
-void parseRequestBody(HttpRequest* request, char* body);
+void sendResponse(int clientFd, HttpResponse response);
 
 #endif

@@ -1,32 +1,42 @@
 #include "utils.h"
 
-char* getVersion() {
-	char *version = malloc(sizeof(char)*12);
+// initialize the logs here (format and file_path if available)
 
+
+char* getVersion() {
+	static char versionBuffer[12];
+	
 	snprintf(
-		version, sizeof(char)*12, "%d.%d.%d",
+		versionBuffer, sizeof(char)*12, "%d.%d.%d",
 		MAJOR_VERSION, MINOR_VERSION, PATCHLEVEL
 	);
-
-	return version;
-}
-
-
-char* getLogTime() {
-	time_t now = time(NULL);
-	struct tm *t = localtime(&now);
 	
-	char *timeStr = malloc(sizeof(char)*26);
-
-	strftime(timeStr, sizeof(char)*26, "%a %b %e %H:%M:%S", t);
-
-	return timeStr;
+	return versionBuffer;
 }
 
-char* getResponseTime() {
-	time_t now = time(NULL);
 
+char* getCurrentTime() {
+	static char timeStringBuffer[26];
+	time_t now = time(NULL);
 	struct tm *t = localtime(&now);
 
-	// strftime(stimeQtr);
+	strftime(timeStringBuffer, sizeof(char)*26, "%a %b %e %H:%M:%S", t);
+
+	return timeStringBuffer;
+}
+
+void logMessage(enum logType logtype, const char* component, const char* format, ...) {
+	char *logTypeMessages[4]  = {
+		"INFO", "DEBUG", "WARNING", "ERROR"
+	};
+
+	
+	printf("[%s] [%s] ", getCurrentTime(), logTypeMessages[logtype]);
+	
+	va_list args;
+	va_start(args, format);
+	vprintf(format, args);
+	va_end(args);
+
+	printf("\n");
 }

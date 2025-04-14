@@ -1,58 +1,46 @@
 #include "server.h"
-#include "parser.h"
-#include "handler.h"
+#include "request.h"
 
 #include "utils.h"
 
 #include <unistd.h>
 #include <string.h>
+#include <errno.h>
+#include <fcntl.h>
 
-#include <dirent.h>
+#define BUF_SIZE 4096
 
 int serverFd;
 
-char* getReasonPhrase(int responseCode) {
-	switch(responseCode) {
-		case 200: return "OK";
-		case 404: return "Not Found";
-	}
-}
 
-void sendResponse(int clientFd, HttpResponse response){
-	char *fmt = "%s %d %s\r\nHello world";
-
-	dprintf(clientFd, fmt, 
-		response.httpVersion, response.code,
-		getReasonPhrase(response.code)
-	);
-}
-
-int start(char* host, int port) {
+int startServer(char* host, int port) {
 	struct sockaddr_in servAddr;
 	socklen_t addrlen = sizeof(servAddr);
 
-	// Creating the server socket
 	serverFd = socket(AF_INET, SOCK_STREAM, 0);
+
+	int opt = 1;
+	setsockopt(serverFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
 	servAddr.sin_family = AF_INET;
 	servAddr.sin_port = htons(port);
 	inet_pton(AF_INET, host, &servAddr.sin_addr);
 
 	if(bind(serverFd, (struct sockaddr*)&servAddr, addrlen) < 0) {
-		perror("bind");
-		exit(1);
+		logMessage(LOG_ERROR, "Server", "Failed to bind to socket (reason: %s)", strerror(errno));
+		return -1;
 	}
 	
 	if(listen(serverFd, 10)) {
-		perror("listen");
-		exit(1);
+		logMessage(LOG_ERROR, "Server", "Failed to listen on %s:%d (reason: %s)", host, port, strerror(errno));
+		return -1;
 	}
 
-	printf("[%s] Live server %s (\e]8;;https://%s:%d/\e\\http://%s:%d\e]8;;\e\\) started\n",
-		getCurrentTime(), getVersion(), host, port, host, port);
+	logMessage(LOG_INFO, "Server", "Lite server %s (\e]8;;https://%s:%d/\e\\http://%s:%d\e]8;;\e\\) started",
+		getVersion(), host, port, host, port);
 }	
 
-void run(char* path) {
+void runServer(char* path) {
 	struct sockaddr_in clientAddr;
 	socklen_t addrlen = sizeof(clientAddr);
 
@@ -61,50 +49,64 @@ void run(char* path) {
 	int clientPort;
 
 	int readSize;
-	char buffer[1024];
+	char buffer[BUF_SIZE];
 	char *line;
 
 	while(1) {
 		clientFd = accept(serverFd, (struct sockaddr*)&clientAddr, &addrlen);
 		
 		if(clientFd == -1) {
-			perror("accept");
+			logMessage(LOG_ERROR, "Server", "Connection refused (reason: %s)", strerror(errno));
 			continue;
 		}
 
 		inet_ntop(AF_INET, &clientAddr.sin_addr, clientAddress_s, INET_ADDRSTRLEN);
 		clientPort = ntohs(clientAddr.sin_port);
 
-		printf("[%s] %s:%d Accepted\n", getCurrentTime(), clientAddress_s, clientPort);
+		logMessage(LOG_INFO, "Server", "%s:%d Accepted", clientAddress_s, clientPort);
 
-		readSize = read(clientFd, buffer, 1024-1);
-		buffer[readSize] = '\0';
+		bzero(buffer, BUF_SIZE);
+		readSize = read(clientFd, buffer, BUF_SIZE-1);
+		
 
-		printf("%s", buffer);
-		if(readSize < 0) perror("read");
+		if(readSize < 0) {
+			logMessage(LOG_ERROR, "Server", "Failed to read request (reason: %s)", strerror(errno));
+		}
 		else {
+			// TODO: move this to a function and send with in a pthread_create
 			HttpRequest request;
 			HttpResponse response;
 
-			line = strtok(buffer, "\r\n");
-			if(line == NULL) printf("bad request ignored for the moment.\n");
-
-			parseRequestLine(&request, line);
+			// TODO: Error handling
+			int ret = parseRequest(&request, buffer);
+			if(ret < 0) request.badRequestFlag = 1;
 
 			handleRequest(request, &response);
 
 			sendResponse(clientFd, response);
 
-			printf("[%s] %s:%d ", getCurrentTime(), clientAddress_s, clientPort);
-			printf("%s %s\n", request.method, request.uri.path);
+			logMessage(LOG_INFO, "Server", "%s:%d [%d] %s %s",
+				clientAddress_s, clientPort,response.code,
+				request.method, request.uri.path
+			);
 		}
 
-		printf("[%s] %s:%d Closing\n", getCurrentTime(), clientAddress_s, clientPort);
+		logMessage(LOG_INFO, "Server", "%s:%d Closing", clientAddress_s, clientPort);
 		close(clientFd);
 	}
 }
 
-void stop() {
+void stopServer() {
 	close(serverFd);
-	printf("[%s] Server stopped", getCurrentTime());
+
+	if(fcntl(serverFd, F_GETFD) != -1 || errno != EBADF) {
+		logMessage(LOG_ERROR, "Server", "Failed to stop server\n");
+	}
+	else logMessage(LOG_INFO, "Server", "Server stopped");
+}
+
+void userCancel(int sig) {
+	logMessage(LOG_INFO, "Server", "Server stopped by user");
+	stopServer();
+	exit(0);
 }

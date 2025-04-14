@@ -1,0 +1,11 @@
+add the boolean parsing in pconfig parser
+handle empty strings in config (not tested but there is surely an error in that code about that now)
+
+
+
+
+convert the hostname to 127.0.0.1 when it is localhost
+
+
+go through every file, if its source file, move the imcludes to header file, if header file, clean the imports and remove unused ones
+

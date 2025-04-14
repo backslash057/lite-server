@@ -2,14 +2,12 @@ main parse la ligne de commande et apelle server
 
 server va start en creant le socket et attendre les connexion
 
-quand le serveur recoit une requete, il lit toute les lignes et envoie le resultat au parseur
+quand le serveur recoit une requete, il lit toute les lignes et demande a parser de parse
 
 le parseur lis les lignes de la requete et les transforme en objet httpRequest
 
-le serveur va maintenant appeler le handler en lui passant le httprequest en question ainsi que
-le file descriptor du client pour qu il puisse y ecrire la reponse http
 
+le serveur va maintenant appeler le handler en lui passant le httprequest et un httpresponse par adresse
 
+le serveur envoit le http response au client
 
-
-create a config parser
