@@ -12,7 +12,6 @@
 
 int serverFd;
 
-
 int startServer(char* host, int port) {
 	struct sockaddr_in servAddr;
 	socklen_t addrlen = sizeof(servAddr);
@@ -67,15 +66,19 @@ void runServer(char* path) {
 
 		bzero(buffer, BUF_SIZE);
 		readSize = read(clientFd, buffer, BUF_SIZE-1);
-		
 
 		if(readSize < 0) {
 			logMessage(LOG_ERROR, "Server", "Failed to read request (reason: %s)", strerror(errno));
 		}
 		else {
 			// TODO: move this to a function and send with in a pthread_create
+			
+			//TODO: initialise request and reponse objects well
 			HttpRequest request;
 			HttpResponse response;
+
+			// logMessage(LOG_DEBUG, "Server", "req = %s\n", buffer);
+
 
 			// TODO: Error handling
 			int ret = parseRequest(&request, buffer);
@@ -84,6 +87,9 @@ void runServer(char* path) {
 			handleRequest(request, &response);
 
 			sendResponse(clientFd, response);
+
+			// TODO: free request
+			// TODO: free response
 
 			logMessage(LOG_INFO, "Server", "%s:%d [%d] %s %s",
 				clientAddress_s, clientPort,response.code,

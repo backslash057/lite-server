@@ -47,6 +47,7 @@ int parseRequestLine(HttpRequest* request, char* line) {
 int parseRequestURI(RequestURI* uri, char* uriString) {
     if (!uriString) return -1;
 
+
     char* queryStart = strchr(uriString, '?');
     if (queryStart) {
         *queryStart = '\0';
@@ -67,7 +68,6 @@ int parseRequest(HttpRequest* request, char* buf) {
 	int count=0;
 	
 	char* requestLine = strtok(buf, "\r\n");
-	logMessage(LOG_DEBUG, "Request", "Request line: '%s'\n", requestLine);
 	int ret = parseRequestLine(request, requestLine);
 	if(ret < 0) return ret;
 
@@ -81,7 +81,7 @@ void sendResponse(int clientFd, HttpResponse response) {
 	char* fmt =
 	"%s %d %s\r\n"
 	"Server: Live\r\n"
-	"Content-Type: text/html\r\n"
+	"Content-Type: text/plain\r\n"
 	"\r\n"
 	"%s";
 
@@ -89,10 +89,10 @@ void sendResponse(int clientFd, HttpResponse response) {
 		response.code, getReasonPhrase(response.code), response.body
 	);
 
-	dprintf(1, fmt, response.httpVersion,
-		response.code, getReasonPhrase(response.code), response.body
-	);
-	printf("\n");
+	// dprintf(1, fmt, response.httpVersion,
+	// 	response.code, getReasonPhrase(response.code), response.body
+	// );
+	// printf("\n");
 }
 
 
